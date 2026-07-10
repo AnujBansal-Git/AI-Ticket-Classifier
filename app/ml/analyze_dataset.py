@@ -3,43 +3,41 @@ from pathlib import Path
 import pandas as pd
 
 
-# Project root -> sample_data -> customer_support_tickets.csv
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATASET_PATH = PROJECT_ROOT / "sample_data" / "customer_support_tickets.csv"
+DATASET_PATH = (
+    PROJECT_ROOT
+    / "sample_data"
+    / "aa_dataset-tickets-multi-lang-5-2-50-version.csv"
+)
 
 
 def main():
     df = pd.read_csv(DATASET_PATH)
 
-    print("=" * 50)
+    print("=" * 60)
     print("DATASET SHAPE")
-    print("=" * 50)
+    print("=" * 60)
     print(df.shape)
 
-    print("\n" + "=" * 50)
-    print("COLUMNS")
-    print("=" * 50)
-    print(df.columns.tolist())
+    print("\n" + "=" * 60)
+    print("LANGUAGES")
+    print("=" * 60)
+    print(df["language"].value_counts())
 
-    print("\n" + "=" * 50)
-    print("MISSING VALUES")
-    print("=" * 50)
-    print(df.isnull().sum())
+    print("\n" + "=" * 60)
+    print("TICKET TYPES")
+    print("=" * 60)
+    print(df["type"].value_counts())
 
-    print("\n" + "=" * 50)
-    print("TICKET TYPE DISTRIBUTION")
-    print("=" * 50)
-    print(df["Ticket Type"].value_counts())
+    print("\n" + "=" * 60)
+    print("QUEUES")
+    print("=" * 60)
+    print(df["queue"].value_counts())
 
-    print("\n" + "=" * 50)
-    print("PRIORITY DISTRIBUTION")
-    print("=" * 50)
-    print(df["Ticket Priority"].value_counts())
-
-    print("\n" + "=" * 50)
-    print("DUPLICATE ROWS")
-    print("=" * 50)
-    print(df.duplicated().sum())
+    print("\n" + "=" * 60)
+    print("PRIORITIES")
+    print("=" * 60)
+    print(df["priority"].value_counts())
 
 
 if __name__ == "__main__":

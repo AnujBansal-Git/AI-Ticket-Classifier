@@ -12,7 +12,10 @@ COMMON_PHRASES = [
 
 def clean_text(text: str) -> str:
     text = text.lower()
-
+    
+    text = text.replace("\n", " ")
+    text = text.replace("\r", " ")
+    
     # Remove placeholders
     text = re.sub(r"\{.*?\}", " ", text)
 
