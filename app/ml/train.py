@@ -6,6 +6,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 from app.ml.preprocessing import clean_text
 
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATASET_PATH = PROJECT_ROOT / "sample_data" / "customer_support_tickets.csv"
@@ -63,28 +65,40 @@ def main():
 
     X_train_vectors = vectorizer.fit_transform(X_train)
     X_test_vectors = vectorizer.transform(X_test)
+   
+    # Train the classifier
+    model = MultinomialNB()
+
+    model.fit(X_train_vectors, y_train)
+
+    # Predict on unseen data
+    predictions = model.predict(X_test_vectors)
+
+    # Calculate accuracy
+    accuracy = accuracy_score(y_test, predictions)
 
     print("=" * 50)
-    print("TRAIN / TEST SPLIT")
+    print("MODEL EVALUATION")
     print("=" * 50)
 
     print(f"Training samples : {len(X_train)}")
     print(f"Testing samples  : {len(X_test)}")
 
     print()
-
-    print("Training matrix shape:")
-    print(X_train_vectors.shape)
+    print(f"Vocabulary size : {len(vectorizer.vocabulary_)}")
 
     print()
-
-    print("Testing matrix shape:")
-    print(X_test_vectors.shape)
+    print(f"Accuracy : {accuracy:.4f}")
 
     print()
+    print("=" * 50)
+    print("SAMPLE PREDICTIONS")
+    print("=" * 50)
 
-    print("Vocabulary size:")
-    print(len(vectorizer.vocabulary_))
+    for i in range(5):
+        print(f"\nTicket : {X_test.iloc[i]}")
+        print(f"Actual : {y_test.iloc[i]}")
+        print(f"Predicted : {predictions[i]}")
 
 
 if __name__ == "__main__":
