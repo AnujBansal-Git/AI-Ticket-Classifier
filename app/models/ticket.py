@@ -8,4 +8,15 @@ class Ticket(Base):
     __tablename__ = "tickets"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+
     ticket: Mapped[str] = mapped_column(String, nullable=False)
+
+    category: Mapped[str] = mapped_column(String, nullable=False)
+
+    priority: Mapped[str] = mapped_column(String, nullable=False)
+
+    suggested_team: Mapped[str] = mapped_column(String, nullable=False)
+
+    summary: Mapped[str] = mapped_column(String, nullable=False)
+
+    sentiment: Mapped[str] = mapped_column(String, nullable=False)
