@@ -1,0 +1,39 @@
+services:
+
+  api:
+    build: .
+    container_name: ai-ticket-api
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      - redis
+
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=sqlite:///tickets.db
+
+    volumes:
+      - .:/app
+
+  worker:
+    build: .
+    container_name: ai-ticket-worker
+
+    command: celery -A app.tasks worker --loglevel=info --concurrency=1
+
+    depends_on:
+      - redis
+
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=sqlite:///tickets.db
+
+    volumes:
+      - .:/app
+
+  redis:
+    image: redis:7-alpine
+
+    container_name: ai-ticket-redis
