@@ -4,6 +4,10 @@ import pandas as pd
 
 from app.ml.preprocessing import clean_text
 
+from sqlalchemy import create_engine
+
+from app.models.training_feedback import TrainingFeedback
+from app.db.database import DATABASE_URL
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATASET_PATH = (
@@ -48,6 +52,41 @@ def load_training_data():
     )
 
     # Clean ticket text
+    df["ticket"] = df["ticket"].apply(clean_text)
+
+    return df
+
+def load_feedback_data():
+    """
+    Load reviewed tickets from the database.
+    """
+
+    engine = create_engine(DATABASE_URL)
+
+    df = pd.read_sql_table(
+        TrainingFeedback.__tablename__,
+        con=engine,
+    )
+
+    if df.empty:
+        return pd.DataFrame(
+            columns=[
+                "ticket",
+                "category",
+                "priority",
+                "team",
+            ]
+        )
+
+    df = df[
+        [
+            "ticket",
+            "category",
+            "priority",
+            "team",
+        ]
+    ]
+
     df["ticket"] = df["ticket"].apply(clean_text)
 
     return df

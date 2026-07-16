@@ -1,10 +1,24 @@
 from transformers import pipeline
 
-# Load model only once
-summarizer = pipeline(
-    "summarization",
-    model="sshleifer/distilbart-cnn-12-6",
-)
+MODEL_NAME = "sshleifer/distilbart-cnn-12-6"
+
+_summarizer = None
+
+
+def get_summarizer():
+    """
+    Lazily load the summarization model.
+    """
+
+    global _summarizer
+
+    if _summarizer is None:
+        _summarizer = pipeline(
+            "summarization",
+            model=MODEL_NAME,
+        )
+
+    return _summarizer
 
 
 def generate_summary(text: str) -> str:
@@ -47,6 +61,8 @@ def generate_summary(text: str) -> str:
 
     input_words = len(prompt.split())
 
+    summarizer = get_summarizer()
+
     result = summarizer(
         prompt,
         max_length=min(60, input_words),
@@ -56,7 +72,6 @@ def generate_summary(text: str) -> str:
 
     summary = result[0]["summary_text"].strip()
 
-    # Remove unwanted prefixes produced by the model
     prefixes = [
         "Customer support ticket:",
         "Customer support ticket",
@@ -66,6 +81,4 @@ def generate_summary(text: str) -> str:
         if summary.lower().startswith(prefix.lower()):
             summary = summary[len(prefix):].strip()
 
-    summary = summary.strip('"').strip()
-
-    return summary
+    return summary.strip('"').strip()

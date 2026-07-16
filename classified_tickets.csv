@@ -1,0 +1,5 @@
+ticket,category,priority,suggested_team,summary,sentiment
+My laptop crashes every few minutes.,Incident,medium,IT Support,My laptop crashes every few minutes.,NEGATIVE
+I was charged twice for my subscription.,Problem,high,Billing and Payments,I was charged twice for my subscription.,NEGATIVE
+Thank you for resolving my issue.,Feedback,low,Customer Service,Thank you for resolving my issue.,POSITIVE
+I cannot login to my account.,Incident,medium,IT Support,I cannot login to my account.,POSITIVE

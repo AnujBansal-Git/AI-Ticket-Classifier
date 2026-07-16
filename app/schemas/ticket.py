@@ -17,3 +17,14 @@ class TicketResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+class TicketCreatedResponse(BaseModel):
+    id: int
+    status: str
+    message: str
+
+
+class UnclassifiedTicketResponse(BaseModel):
+    id: int
+    status: str
+    message: str

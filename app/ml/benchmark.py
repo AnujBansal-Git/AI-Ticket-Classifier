@@ -41,13 +41,21 @@ def main():
     y = df["category"]
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42,
-    )
+    X,
+    y,
+    test_size=0.2,
+    random_state=42,
+    stratify=y,
+)
 
-    vectorizer = TfidfVectorizer()
+    vectorizer = TfidfVectorizer(
+    lowercase=True,
+    stop_words="english",
+    ngram_range=(1, 2),
+    min_df=2,
+    max_df=0.95,
+)   
+
 
     X_train = vectorizer.fit_transform(X_train)
     X_test = vectorizer.transform(X_test)
