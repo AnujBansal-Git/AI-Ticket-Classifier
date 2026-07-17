@@ -9,7 +9,7 @@ DATABASE_URL = os.getenv(
 
 engine = create_engine(
     DATABASE_URL,
-    echo=True,
+    echo=False,
 )
 
 SessionLocal = sessionmaker(

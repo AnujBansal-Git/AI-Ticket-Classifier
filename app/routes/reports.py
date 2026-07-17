@@ -5,6 +5,9 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.ticket import Ticket
 
+from app.auth.dependencies import get_current_user
+from app.models.user import User
+
 router = APIRouter(
     prefix="/reports",
     tags=["Reports"],
@@ -14,15 +17,22 @@ router = APIRouter(
 @router.get("/category-summary")
 def category_summary(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
 
-    total_tickets = db.query(Ticket).count()
+    total_tickets = (
+       db.query(Ticket)
+       .filter(Ticket.user_id == current_user.id)
+       .count()
+        )
 
     category_counts = (
         db.query(
             Ticket.category,
             func.count(Ticket.id).label("count"),
         )
+        .filter(Ticket.user_id == current_user.id)
+
         .group_by(Ticket.category)
         .all()
     )
@@ -32,6 +42,8 @@ def category_summary(
             Ticket.priority,
             func.count(Ticket.id).label("count"),
         )
+        .filter(Ticket.user_id == current_user.id)
+
         .group_by(Ticket.priority)
         .all()
     )
@@ -41,6 +53,8 @@ def category_summary(
             Ticket.sentiment,
             func.count(Ticket.id).label("count"),
         )
+        .filter(Ticket.user_id == current_user.id)
+
         .group_by(Ticket.sentiment)
         .all()
     )

@@ -1,11 +1,11 @@
 import pandas as pd
+import pandas.errors
 from typing import Union
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
-from app.db.database import Base, engine
 from app.db.session import get_db
 from app.ml.predict import predict
 from app.models.ticket import Ticket
@@ -45,13 +45,36 @@ from app.schemas.unclassified_ticket import (
 
 from app.services.review_service import review_ticket
 
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
+from app.core.limiter import limiter
+
+from app.exceptions.custom_exceptions import AppException
+from app.exceptions.handlers import app_exception_handler
+
+from app.exceptions.custom_exceptions import CSVError
+
+from app.core.logging import setup_logging
+from app.middleware.request_logging import request_logging_middleware
+
 app = FastAPI(
     title="AI Ticket Classifier API",
     description="AI-powered ticket classification system",
     version="1.0.0",
 )
 
-Base.metadata.create_all(bind=engine)
+app.state.limiter = limiter
+
+app.add_exception_handler(
+    RateLimitExceeded,
+    _rate_limit_exceeded_handler,
+)
+
+app.add_exception_handler(
+    AppException,
+    app_exception_handler,
+)
 
 app.include_router(auth_router)
 app.include_router(reports_router)
@@ -262,17 +285,26 @@ async def create_bulk_job_endpoint(
 ):
 
     if not file.filename.endswith(".csv"):
-        raise HTTPException(
-            status_code=400,
-            detail="Please upload a CSV file.",
+        raise CSVError(
+           code="INVALID_FILE_TYPE",
+           message="Please upload a CSV file.",
+           status_code=400,
         )
 
-    df = pd.read_csv(file.file)
+    try:
+       df = pd.read_csv(file.file)
+    except (pd.errors.ParserError, UnicodeDecodeError, pd.errors.EmptyDataError):
+         raise CSVError(
+            code="INVALID_CSV",
+            message="The uploaded CSV file could not be read.",
+            status_code=400,
+        )
 
     if "ticket" not in df.columns:
-        raise HTTPException(
+        raise CSVError(
+            code="MISSING_TICKET_COLUMN",
+            message="CSV must contain a 'ticket' column.",
             status_code=400,
-            detail="CSV must contain a 'ticket' column.",
         )
 
     job = create_bulk_job(

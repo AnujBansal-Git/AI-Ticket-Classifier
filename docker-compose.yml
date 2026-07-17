@@ -8,11 +8,13 @@ services:
       - "8000:8000"
 
     depends_on:
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
-    environment:
-      - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=sqlite:///tickets.db
+    env_file:
+      - .env
 
     volumes:
       - .:/app
@@ -24,16 +26,47 @@ services:
     command: celery -A app.tasks worker --loglevel=info --concurrency=1
 
     depends_on:
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
-    environment:
-      - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=sqlite:///tickets.db
+    env_file:
+      - .env
 
     volumes:
       - .:/app
 
+  postgres:
+    image: postgres:17-alpine
+    container_name: ai-ticket-postgres
+
+    environment:
+      POSTGRES_USER: ticket_user
+      POSTGRES_PASSWORD: ticket_password
+      POSTGRES_DB: ticket_classifier
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticket_user -d ticket_classifier"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:7-alpine
-
     container_name: ai-ticket-redis
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
