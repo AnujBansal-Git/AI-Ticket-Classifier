@@ -1,0 +1,207 @@
+[1mdiff --git a/app/main.py b/app/main.py[m
+[1mindex 1f1609d..e14d6da 100644[m
+[1m--- a/app/main.py[m
+[1m+++ b/app/main.py[m
+[36m@@ -148,10 +148,17 @@[m [mdef classify_ticket([m
+     db.refresh(ticket)[m
+ [m
+     return TicketCreatedResponse([m
+[31m-        id=ticket.id,[m
+[31m-        status="classified",[m
+[31m-        message="Ticket classified successfully.",[m
+[31m-    )[m
+[32m+[m[32m    id=ticket.id,[m
+[32m+[m[32m    status="classified",[m
+[32m+[m[32m    message="Ticket classified successfully.",[m
+[32m+[m
+[32m+[m[32m    ticket=ticket.ticket,[m
+[32m+[m[32m    category=ticket.category,[m
+[32m+[m[32m    priority=ticket.priority,[m
+[32m+[m[32m    suggested_team=ticket.suggested_team,[m
+[32m+[m[32m    summary=ticket.summary,[m
+[32m+[m[32m    sentiment=ticket.sentiment,[m
+[32m+[m[32m)[m
+ [m
+ @app.post( "/unclassified-tickets/{ticket_id}/review",[m
+     response_model=ReviewResponse,[m
+[36m@@ -352,19 +359,7 @@[m [mdef get_bulk_job([m
+             detail="Bulk job not found.",[m
+         )[m
+ [m
+[31m-    return job[m
+[31m-[m
+[31m-@app.get([m
+[31m-    "/bulk-jobs/{job_id}/tickets",[m
+[31m-    response_model=list[TicketResponse],[m
+[31m-)[m
+[31m-def get_bulk_job_tickets([m
+[31m-    job_id: int,[m
+[31m-    db: Session = Depends(get_db),[m
+[31m-    current_user: User = Depends(get_current_user),[m
+[31m-):[m
+[31m-[m
+[31m-    return ([m
+[32m+[m[32m    classified_tickets = ([m
+         db.query(Ticket)[m
+         .filter([m
+             Ticket.bulk_job_id == job_id,[m
+[36m@@ -374,22 +369,27 @@[m [mdef get_bulk_job_tickets([m
+         .all()[m
+     )[m
+ [m
+[31m-@app.get([m
+[31m-    "/bulk-jobs/{job_id}/unclassified-tickets",[m
+[31m-    response_model=list[UnclassifiedTicketDBResponse],[m
+[31m-)[m
+[31m-def get_bulk_job_unclassified_tickets([m
+[31m-    job_id: int,[m
+[31m-    db: Session = Depends(get_db),[m
+[31m-    current_user: User = Depends(get_current_user),[m
+[31m-):[m
+[32m+[m[32m    unclassified_tickets = ([m
+[32m+[m[32m       db.query(UnclassifiedTicket)[m
+[32m+[m[32m       .filter([m
+[32m+[m[32m           UnclassifiedTicket.bulk_job_id == job_id,[m
+[32m+[m[32m           UnclassifiedTicket.user_id == current_user.id,[m
+[32m+[m[32m    )[m
+[32m+[m[32m    .order_by(UnclassifiedTicket.id)[m
+[32m+[m[32m    .all()[m
+[32m+[m[32m    )[m
+ [m
+[31m-    return ([m
+[31m-        db.query(UnclassifiedTicket)[m
+[31m-        .filter([m
+[31m-            UnclassifiedTicket.bulk_job_id == job_id,[m
+[31m-            UnclassifiedTicket.user_id == current_user.id,[m
+[31m-        )[m
+[31m-        .order_by(UnclassifiedTicket.id)[m
+[31m-        .all()[m
+[32m+[m[32m    return BulkJobResponse([m
+[32m+[m[32m        id=job.id,[m
+[32m+[m[32m        filename=job.filename,[m
+[32m+[m[32m        status=job.status,[m
+[32m+[m
+[32m+[m[32m        total_tickets=job.total_tickets,[m
+[32m+[m[32m        processed_tickets=job.processed_tickets,[m
+[32m+[m
+[32m+[m[32m        classified_tickets_count=job.classified_tickets,[m
+[32m+[m[32m        unclassified_tickets_count=job.unclassified_tickets,[m
+[32m+[m
+[32m+[m[32m        classified_tickets=classified_tickets,[m
+[32m+[m[32m        unclassified_tickets=unclassified_tickets,[m
+     )[m
+\ No newline at end of file[m
+[1mdiff --git a/app/schemas/bulk_job.py b/app/schemas/bulk_job.py[m
+[1mindex 6a7add1..48092da 100644[m
+[1m--- a/app/schemas/bulk_job.py[m
+[1m+++ b/app/schemas/bulk_job.py[m
+[36m@@ -1,11 +1,10 @@[m
+ from pydantic import BaseModel[m
+ [m
+[31m-[m
+[32m+[m[32mfrom app.schemas.ticket import TicketResponse[m
+[32m+[m[32mfrom app.schemas.unclassified_ticket import UnclassifiedTicketResponse[m
+ class BulkJobCreatedResponse(BaseModel):[m
+     bulk_job_id: int[m
+     message: str[m
+[31m-[m
+[31m-[m
+ class BulkJobResponse(BaseModel):[m
+     id: int[m
+     filename: str[m
+[36m@@ -13,9 +12,12 @@[m [mclass BulkJobResponse(BaseModel):[m
+ [m
+     total_tickets: int[m
+     processed_tickets: int[m
+[31m-    classified_tickets: int[m
+[31m-    unclassified_tickets: int[m
+ [m
+[32m+[m[32m    classified_tickets_count: int[m
+[32m+[m[32m    unclassified_tickets_count: int[m
+[32m+[m
+[32m+[m[32m    classified_tickets: list[TicketResponse][m
+[32m+[m[32m    unclassified_tickets: list[UnclassifiedTicketResponse][m
+     model_config = {[m
+         "from_attributes": True[m
+     }[m
+\ No newline at end of file[m
+[1mdiff --git a/app/schemas/ticket.py b/app/schemas/ticket.py[m
+[1mindex d836757..8bd2739 100644[m
+[1m--- a/app/schemas/ticket.py[m
+[1m+++ b/app/schemas/ticket.py[m
+[36m@@ -23,7 +23,12 @@[m [mclass TicketCreatedResponse(BaseModel):[m
+     status: str[m
+     message: str[m
+ [m
+[31m-[m
+[32m+[m[32m    ticket: str[m
+[32m+[m[32m    category: str[m
+[32m+[m[32m    priority: str[m
+[32m+[m[32m    suggested_team: str[m
+[32m+[m[32m    summary: str[m
+[32m+[m[32m    sentiment: str[m
+ class UnclassifiedTicketResponse(BaseModel):[m
+     id: int[m
+     status: str[m
+[1mdiff --git a/render.yaml b/render.yaml[m
+[1mindex 07a013a..8672f87 100644[m
+[1m--- a/render.yaml[m
+[1m+++ b/render.yaml[m
+[36m@@ -9,15 +9,19 @@[m [mservices:[m
+         fromDatabase:[m
+           name: ticket-classifier-db[m
+           property: connectionString[m
+[32m+[m
+       - key: REDIS_URL[m
+         fromService:[m
+           type: keyvalue[m
+           name: ticket-classifier-redis[m
+           property: connectionString[m
+[32m+[m
+       - key: SECRET_KEY[m
+         generateValue: true[m
+[32m+[m
+       - key: ALGORITHM[m
+         value: HS256[m
+[32m+[m
+       - key: ACCESS_TOKEN_EXPIRE_MINUTES[m
+         value: "30"[m
+ [m
+[36m@@ -25,22 +29,26 @@[m [mservices:[m
+     name: ai-ticket-worker[m
+     env: docker[m
+     dockerfilePath: ./Dockerfile[m
+[31m-    dockerCommand: celery -A app.tasks worker --loglevel=info[m
+[32m+[m[32m    dockerCommand: celery -A app.tasks worker --loglevel=info --concurrency=1[m
+     autoDeploy: true[m
+     envVars:[m
+       - key: DATABASE_URL[m
+         fromDatabase:[m
+           name: ticket-classifier-db[m
+           property: connectionString[m
+[32m+[m
+       - key: REDIS_URL[m
+         fromService:[m
+           type: keyvalue[m
+           name: ticket-classifier-redis[m
+           property: connectionString[m
+[32m+[m
+       - key: SECRET_KEY[m
+         sync: false[m
+[32m+[m
+       - key: ALGORITHM[m
+         value: HS256[m
+[32m+[m
+       - key: ACCESS_TOKEN_EXPIRE_MINUTES[m
+         value: "30"[m
+ [m
+[1mdiff --git a/sample_data/customer_support_tickets.csv b/sample_data/customer_support_tickets.csv[m
+[1mindex 958933e..97b23e3 100644[m
+[1m--- a/sample_data/customer_support_tickets.csv[m
+[1m+++ b/sample_data/customer_support_tickets.csv[m
+[36m@@ -1,4 +1,4 @@[m
+[31m-Ticket ID,Customer Name,Customer Email,Customer Age,Customer Gender,Product Purchased,Date of Purchase,Ticket Type,Ticket Subject,Ticket Description,Ticket Status,Resolution,Ticket Priority,Ticket Channel,First Response Time,Time to Resolution,Customer Satisfaction Rating[m
+[32m+[m[32mTicket ID,Customer Name,Customer Email,Customer Age,Customer Gender,Product Purchased,Date of Purchase,Ticket Type,Ticket Subject,ticket,Ticket Status,Resolution,Ticket Priority,Ticket Channel,First Response Time,Time to Resolution,Customer Satisfaction Rating[m
+ 1,Marisa Obrien,carrollallison@example.com,32,Other,GoPro Hero,2021-03-22,Technical issue,Product setup,"I'm having an issue with the {product_purchased}. Please assist.[m
+ [m
+ Your billing zip code is: 71701.[m

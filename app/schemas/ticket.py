@@ -23,7 +23,12 @@ class TicketCreatedResponse(BaseModel):
     status: str
     message: str
 
-
+    ticket: str
+    category: str
+    priority: str
+    suggested_team: str
+    summary: str
+    sentiment: str
 class UnclassifiedTicketResponse(BaseModel):
     id: int
     status: str

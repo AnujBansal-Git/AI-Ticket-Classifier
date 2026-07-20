@@ -148,10 +148,17 @@ def classify_ticket(
     db.refresh(ticket)
 
     return TicketCreatedResponse(
-        id=ticket.id,
-        status="classified",
-        message="Ticket classified successfully.",
-    )
+    id=ticket.id,
+    status="classified",
+    message="Ticket classified successfully.",
+
+    ticket=ticket.ticket,
+    category=ticket.category,
+    priority=ticket.priority,
+    suggested_team=ticket.suggested_team,
+    summary=ticket.summary,
+    sentiment=ticket.sentiment,
+)
 
 @app.post( "/unclassified-tickets/{ticket_id}/review",
     response_model=ReviewResponse,
@@ -352,19 +359,7 @@ def get_bulk_job(
             detail="Bulk job not found.",
         )
 
-    return job
-
-@app.get(
-    "/bulk-jobs/{job_id}/tickets",
-    response_model=list[TicketResponse],
-)
-def get_bulk_job_tickets(
-    job_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-
-    return (
+    classified_tickets = (
         db.query(Ticket)
         .filter(
             Ticket.bulk_job_id == job_id,
@@ -374,22 +369,27 @@ def get_bulk_job_tickets(
         .all()
     )
 
-@app.get(
-    "/bulk-jobs/{job_id}/unclassified-tickets",
-    response_model=list[UnclassifiedTicketDBResponse],
-)
-def get_bulk_job_unclassified_tickets(
-    job_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
+    unclassified_tickets = (
+       db.query(UnclassifiedTicket)
+       .filter(
+           UnclassifiedTicket.bulk_job_id == job_id,
+           UnclassifiedTicket.user_id == current_user.id,
+    )
+    .order_by(UnclassifiedTicket.id)
+    .all()
+    )
 
-    return (
-        db.query(UnclassifiedTicket)
-        .filter(
-            UnclassifiedTicket.bulk_job_id == job_id,
-            UnclassifiedTicket.user_id == current_user.id,
-        )
-        .order_by(UnclassifiedTicket.id)
-        .all()
+    return BulkJobResponse(
+        id=job.id,
+        filename=job.filename,
+        status=job.status,
+
+        total_tickets=job.total_tickets,
+        processed_tickets=job.processed_tickets,
+
+        classified_tickets_count=job.classified_tickets,
+        unclassified_tickets_count=job.unclassified_tickets,
+
+        classified_tickets=classified_tickets,
+        unclassified_tickets=unclassified_tickets,
     )
