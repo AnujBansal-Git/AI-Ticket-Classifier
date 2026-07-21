@@ -4,7 +4,7 @@ An AI-powered customer support ticket classification backend built with FastAPI,
 
 The application accepts individual support tickets and bulk CSV uploads, automatically classifies tickets using trained machine-learning models, predicts priority and the appropriate support team, generates summaries, performs sentiment analysis, and stores results in PostgreSQL.
 
-Tickets that do not contain enough information for reliable automatic classification are stored separately for manual review. Reviewed classifications are collected as training feedback and can later be incorporated into the training dataset for internal model retraining.
+Tickets that do not contain enough information for reliable automatic classification are stored separately for manual review. Reviewed classifications are stored as training feedback and are intended to support future model retraining.
 
 Bulk classification is processed asynchronously using Celery and Redis so that large CSV operations do not block the FastAPI server.
 
@@ -86,9 +86,7 @@ FastAPI provides HTTP endpoints for:
 - single-ticket classification
 - classified-ticket retrieval
 - bulk CSV processing
-- bulk-job status retrieval
-- bulk classification result retrieval
-- unclassified-ticket retrieval
+- bulk-job status and results retrieval
 - manual review
 - reporting
 
@@ -1086,7 +1084,13 @@ Example response:
 {
   "id": 4,
   "status": "classified",
-  "message": "Ticket classified successfully."
+  "message": "Ticket classified successfully.",
+  "ticket": "...",
+  "category": "...",
+  "priority": "...",
+  "suggested_team": "...",
+  "summary": "...",
+  "sentiment": "..."
 }
 ```
 
@@ -1382,7 +1386,7 @@ Message: CSV must contain a 'ticket' column.
 
 ### `GET /bulk-jobs/{job_id}`
 
-Returns the status and processing counters for a bulk job.
+Returns the status, processing counters and result for a bulk job.
 
 Authentication is required.
 
@@ -1397,8 +1401,14 @@ The bulk job must belong to the authenticated user.
   "status": "completed",
   "total_tickets": 5,
   "processed_tickets": 5,
-  "classified_tickets": 4,
-  "unclassified_tickets": 1
+  "classified_tickets_count": 4,
+  "unclassified_tickets_count": 1,
+  "classified_tickets": [
+    ...
+  ],
+  "unclassified_tickets": [
+    ...
+  ]
 }
 ```
 
@@ -1416,71 +1426,6 @@ If the bulk job does not exist or belongs to another user:
   "detail": "Bulk job not found."
 }
 ```
-
----
-
-# Bulk Classification Results
-
-## Retrieve Classified Tickets from a Bulk Job
-
-### `GET /bulk-jobs/{job_id}/tickets`
-
-Returns classified tickets associated with a bulk job.
-
-Authentication is required.
-
-Results are filtered using both:
-
-- bulk-job ID
-- authenticated user ID
-
-### Example Response
-
-```json
-[
-  {
-    "id": 10,
-    "ticket": "I was charged twice for my subscription.",
-    "category": "Problem",
-    "priority": "medium",
-    "suggested_team": "Billing and Payments",
-    "summary": "Customer reports being charged twice.",
-    "sentiment": "negative"
-  }
-]
-```
-
-The classification values in this example are illustrative. Actual values depend on model output and post-processing.
-
----
-
-## Retrieve Unclassified Tickets from a Bulk Job
-
-### `GET /bulk-jobs/{job_id}/unclassified-tickets`
-
-Returns tickets from the bulk job that could not be automatically classified.
-
-Authentication is required.
-
-Results are filtered by:
-
-- bulk-job ID
-- authenticated user ID
-
-### Example Response
-
-```json
-[
-  {
-    "id": 7,
-    "ticket": "help",
-    "source": "bulk",
-    "bulk_job_id": 2
-  }
-]
-```
-
-These tickets can be manually classified through the bulk-review endpoint.
 
 ---
 
@@ -2181,10 +2126,7 @@ Task Completes Successfully
 GET /bulk-jobs/{job_id}
         |
         v
-GET /bulk-jobs/{job_id}/tickets
-        |
-        v
-Unclassified Ticket Handling
+Classified & Unclassified Results
         |
         v
 Manual Review
